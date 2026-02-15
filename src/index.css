@@ -123,4 +123,180 @@
     @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
+  
+  /* Enable backdrop-filter support */
+  @supports (backdrop-filter: blur(0)) or (-webkit-backdrop-filter: blur(0)) {
+    .backdrop-blur-2xl {
+      -webkit-backdrop-filter: blur(40px);
+      backdrop-filter: blur(40px);
+    }
+    .backdrop-blur-md {
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+    .backdrop-blur-sm {
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+    }
+  }
+  
+  /* Sidebar backdrop overlay styling */
+  [data-slot="sidebar-backdrop"] {
+    transition: opacity 0.3s ease-out;
+  }
+}
+
+/* Enhanced Dialog Table Styles */
+@layer utilities {
+  /* Improve table header - cleaner like editable user */
+  thead tr {
+    @apply border-b;
+  }
+  
+  thead tr th {
+    @apply font-medium text-muted-foreground;
+  }
+  
+  /* Override dashed borders for cleaner look */
+  tbody tr {
+    @apply border-b border-border;
+  }
+  
+  thead tr.border-dashed,
+  tbody tr.border-dashed {
+    @apply border-b border-border;
+    border-style: solid !important;
+  }
+  
+  /* Keep text on single line, allow horizontal scroll */
+  tbody tr td,
+  thead tr th {
+    @apply whitespace-nowrap;
+  }
+  
+  /* Editable cell button styling - like editable user table */
+  tbody tr td button {
+    @apply w-full hover:bg-accent/50 px-2 py-1 -mx-2 -my-1 rounded transition-colors cursor-pointer whitespace-nowrap;
+  }
+  
+  tbody tr td button:hover {
+    @apply bg-accent/60;
+  }
+  
+  /* Improve table rows - subtle hover */
+  tbody tr {
+    @apply transition-colors duration-150;
+  }
+  
+  tbody tr:hover {
+    @apply bg-muted/20;
+  }
+  
+  /* Table cells padding */
+  tbody tr td,
+  thead tr th {
+    @apply px-4 py-3;
+  }
+  
+  /* Action buttons - cleaner icon style */
+  tbody tr td div button[class*="ghost"] {
+    @apply h-8 w-8;
+  }
+  
+  /* Improve select dropdowns in tables */
+  tbody tr td select {
+    @apply transition-all duration-200 hover:shadow-sm;
+  }
+  
+  /* Glassmorphism Sidebar Enhancements */
+  [data-slot="sidebar-inner"],
+  [data-mobile="true"] {
+    position: relative;
+  }
+  
+  /* Add subtle inner glow effect */
+  [data-slot="sidebar-inner"]::before,
+  [data-mobile="true"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.05) 50%, 
+      rgba(255, 255, 255, 0) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  
+  /* Enhance sidebar menu items with glassmorphism */
+  [data-slot="sidebar"] button,
+  [data-slot="sidebar"] a {
+    @apply transition-all duration-300 ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Add shimmer effect on hover */
+  [data-slot="sidebar"] button::after,
+  [data-slot="sidebar"] a::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.5s ease-in-out;
+  }
+  
+  [data-slot="sidebar"] button:hover::after,
+  [data-slot="sidebar"] a:hover::after {
+    left: 100%;
+  }
+  
+  /* Improved hover effect - clean and simple */
+  [data-slot="sidebar"] button:hover:not(:disabled),
+  [data-slot="sidebar"] a:hover {
+    @apply bg-white/15 dark:bg-white/8;
+    transform: translateX(4px) scale(1.02);
+    border-left: 2px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Active state with stronger effect */
+  [data-slot="sidebar"] [data-active="true"] {
+    @apply bg-white/20 dark:bg-white/12;
+    transform: translateX(6px);
+    border-left: 3px solid rgba(255, 255, 255, 0.5);
+  }
+  
+  /* Smooth animation on focus */
+  [data-slot="sidebar"] button:focus-visible,
+  [data-slot="sidebar"] a:focus-visible {
+    @apply outline-none ring-2 ring-white/30 ring-offset-2 ring-offset-transparent;
+    transform: translateX(4px) scale(1.02);
+  }
+  
+  /* Improve sidebar separators */
+  [data-slot="sidebar"] hr,
+  [data-slot="sidebar"] [role="separator"] {
+    @apply bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    height: 1px;
+    border: none;
+    margin: 0.5rem 0;
+  }
+  
+  /* Enhance sidebar input focus */
+  [data-slot="sidebar"] input:focus {
+    @apply ring-2 ring-white/30 bg-white/10;
+  }
 }

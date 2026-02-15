@@ -5,6 +5,8 @@ type RouteDetail = {
   code: string
   name: string
   delivery: string
+  lat?: string
+  long?: string
 }
 
 type MapWrapperProps = {

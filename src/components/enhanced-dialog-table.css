@@ -1,0 +1,61 @@
+/* Enhanced Dialog Table Styles */
+
+.enhanced-table-header {
+  @apply bg-gradient-to-r from-muted/60 to-muted/40 border-b-2;
+}
+
+.enhanced-table-header-cell {
+  @apply text-center font-semibold text-foreground py-3;
+}
+
+.enhanced-table-row {
+  @apply border-b transition-all duration-200;
+}
+
+.enhanced-table-row:hover {
+  @apply bg-accent/30 shadow-sm;
+}
+
+.enhanced-cell-button {
+  @apply w-full text-center px-3 py-2 rounded-lg transition-all duration-200 cursor-pointer font-medium text-sm;
+  @apply border border-transparent;
+}
+
+.enhanced-cell-button-code {
+  @apply hover:bg-blue-50 dark:hover:bg-blue-950/30;
+  @apply hover:border-blue-300 dark:hover:border-blue-700;
+  @apply hover:shadow-md hover:scale-[1.02];
+  @apply font-mono;
+}
+
+.enhanced-cell-button-name {
+  @apply hover:bg-green-50 dark:hover:bg-green-950/30;
+  @apply hover:border-green-300 dark:hover:border-green-700;
+  @apply hover:shadow-md hover:scale-[1.02];
+}
+
+.enhanced-select {
+  @apply flex h-10 w-full rounded-lg border-2 border-input bg-background px-3 py-2 text-sm font-medium;
+  @apply shadow-sm transition-all duration-200;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1;
+  @apply hover:border-primary/60 hover:shadow cursor-pointer;
+}
+
+.enhanced-add-button {
+  @apply w-full h-12 transition-all duration-200;
+  @apply text-green-600 dark:text-green-400;
+  @apply hover:text-green-700 dark:hover:text-green-300;
+  @apply hover:bg-green-50 dark:hover:bg-green-950/30;
+  @apply border-2 border-dashed border-green-300 dark:border-green-700;
+  @apply hover:border-green-500 dark:hover:border-green-500 hover:border-solid;
+  @apply shadow-sm hover:shadow-md hover:scale-[1.01];
+}
+
+.enhanced-footer {
+  @apply mt-6 pt-5 border-t-2 bg-gradient-to-r from-muted/30 to-muted/10;
+}
+
+.enhanced-footer-button {
+  @apply shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105;
+  @apply font-semibold;
+}

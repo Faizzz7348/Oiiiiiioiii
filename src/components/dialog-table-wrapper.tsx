@@ -12,8 +12,8 @@ export function DialogTableWrapper({ children, className }: DialogTableWrapperPr
   return (
     <div 
       className={cn(
-        "overflow-auto -mx-6 px-6",
-        isFullscreen ? "flex-1" : "max-h-[350px]",
+        "overflow-auto -mx-6 px-6 flex-shrink",
+        isFullscreen ? "max-h-[calc(100vh-200px)]" : "max-h-[350px]",
         className
       )}
     >

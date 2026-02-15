@@ -19,6 +19,8 @@ import {
   Copy,
   Trash2,
   Check,
+  Calendar,
+  Image,
 } from "lucide-react"
 import {
   Sidebar,
@@ -56,22 +58,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Collapsible,
   CollapsibleTrigger,
 } from "@radix-ui/react-collapsible"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { DialogTableWrapper } from "@/components/dialog-table-wrapper"
+import { EditableDialogTableExample } from "@/components/editable-dialog-table-example"
 
 // Sample data untuk table dalam dialog
 const routeDetails = [
-  { id: 1, code: "54", name: "KPJ Klang", delivery: "Daily" },
-  { id: 2, code: "23", name: "Hospital Shah Alam", delivery: "Weekday" },
-  { id: 3, code: "89", name: "Pasar Malam", delivery: "Alt 1" },
-  { id: 4, code: "45", name: "Stesen KTM Klang", delivery: "Alt 2" },
-  { id: 5, code: "67", name: "Terminal Bas Klang", delivery: "Daily" },
+  { id: 1, code: "54", name: "KPJ Klang", delivery: "Daily", lat: "3.0439", long: "101.4384" },
+  { id: 2, code: "23", name: "Hospital Shah Alam", delivery: "Weekday", lat: "3.0738", long: "101.5183" },
+  { id: 3, code: "89", name: "Pasar Malam", delivery: "Alt 1", lat: "3.0454", long: "101.4467" },
+  { id: 4, code: "45", name: "Stesen KTM Klang", delivery: "Alt 2", lat: "3.0368", long: "101.4417" },
+  { id: 5, code: "67", name: "Terminal Bas Klang", delivery: "Daily", lat: "3.0444", long: "101.4450" },
 ]
 
 // Function to format relative time
@@ -158,12 +167,19 @@ export function App() {
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [addingToRegion, setAddingToRegion] = useState<"selangor" | "kualalumpur" | null>(null)
   const [routeListOpen, setRouteListOpen] = useState(false)
+  const [planoOpen, setPlanoOpen] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showInfoDialog, setShowInfoDialog] = useState(false)
   const [selectedDetail, setSelectedDetail] = useState<typeof routeDetails[0] | null>(null)
   const [deliveryOptions] = useState(["Daily", "Weekday", "Alt 1", "Alt 2"])
   const [routeDetailsState, setRouteDetailsState] = useState(routeDetails)
   const [showMenuModal, setShowMenuModal] = useState(false)
+  const [editingCell, setEditingCell] = useState<{
+    rowId: number
+    field: 'code' | 'name' | 'lat' | 'long'
+    value: string
+  } | null>(null)
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
 
   const hasFormChanged = editForm.name !== initialForm.name || 
                          editForm.code !== initialForm.code || 
@@ -366,9 +382,23 @@ export function App() {
                         <Table>
                           <TableHeader>
                             <TableRow className="border-b-2 border-dashed">
+                              <TableHead className="text-center w-[50px]">
+                                <Checkbox
+                                  checked={selectedRows.size === routeDetailsState.length && routeDetailsState.length > 0}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedRows(new Set(routeDetailsState.map(d => d.id)))
+                                    } else {
+                                      setSelectedRows(new Set())
+                                    }
+                                  }}
+                                />
+                              </TableHead>
                               <TableHead className="text-center">No</TableHead>
                               <TableHead className="text-center">Code</TableHead>
                               <TableHead className="text-center">Name</TableHead>
+                              <TableHead className="text-center">Lat</TableHead>
+                              <TableHead className="text-center">Long</TableHead>
                               <TableHead className="text-center">Delivery</TableHead>
                               <TableHead className="text-center">Action</TableHead>
                             </TableRow>
@@ -376,9 +406,237 @@ export function App() {
                           <TableBody>
                             {routeDetailsState.map((detail, index) => (
                               <TableRow key={detail.id} className="border-b border-dashed">
+                                <TableCell className="text-center">
+                                  <Checkbox
+                                    checked={selectedRows.has(detail.id)}
+                                    onChange={(e) => {
+                                      const newSet = new Set(selectedRows)
+                                      if (e.target.checked) {
+                                        newSet.add(detail.id)
+                                      } else {
+                                        newSet.delete(detail.id)
+                                      }
+                                      setSelectedRows(newSet)
+                                    }}
+                                  />
+                                </TableCell>
                                 <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                                <TableCell className="text-center">{detail.code}</TableCell>
-                                <TableCell className="text-center">{detail.name}</TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'code'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'code', value: detail.code })}
+                                      >
+                                        {detail.code}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Code</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Code</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, code: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'name'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'name', value: detail.name })}
+                                      >
+                                        {detail.name}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Name</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Name</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, name: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'lat'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'lat', value: detail.lat })}
+                                      >
+                                        {detail.lat}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Latitude</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Latitude</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, lat: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'long'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'long', value: detail.long })}
+                                      >
+                                        {detail.long}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Longitude</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Longitude</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, long: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
                                 <TableCell className="text-center">
                                   <select
                                     value={detail.delivery}
@@ -425,7 +683,7 @@ export function App() {
                               </TableRow>
                             ))}
                             <TableRow className="border-b border-dashed hover:bg-muted/50">
-                              <TableCell colSpan={5} className="text-center py-3">
+                              <TableCell colSpan={8} className="text-center py-3">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -440,7 +698,9 @@ export function App() {
                                         id: newId,
                                         code: `NEW${newId}`,
                                         name: `New Location ${newId}`,
-                                        delivery: 'Daily'
+                                        delivery: 'Daily',
+                                        lat: '0.0000',
+                                        long: '0.0000'
                                       }
                                     ])
                                   }}
@@ -582,9 +842,23 @@ export function App() {
                         <Table>
                           <TableHeader>
                             <TableRow className="border-b-2 border-dashed">
+                              <TableHead className="text-center w-[50px]">
+                                <Checkbox
+                                  checked={selectedRows.size === routeDetailsState.length && routeDetailsState.length > 0}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedRows(new Set(routeDetailsState.map(d => d.id)))
+                                    } else {
+                                      setSelectedRows(new Set())
+                                    }
+                                  }}
+                                />
+                              </TableHead>
                               <TableHead className="text-center">No</TableHead>
                               <TableHead className="text-center">Code</TableHead>
                               <TableHead className="text-center">Name</TableHead>
+                              <TableHead className="text-center">Lat</TableHead>
+                              <TableHead className="text-center">Long</TableHead>
                               <TableHead className="text-center">Delivery</TableHead>
                               <TableHead className="text-center">Action</TableHead>
                             </TableRow>
@@ -592,9 +866,237 @@ export function App() {
                           <TableBody>
                             {routeDetailsState.map((detail, index) => (
                               <TableRow key={detail.id} className="border-b border-dashed">
+                                <TableCell className="text-center">
+                                  <Checkbox
+                                    checked={selectedRows.has(detail.id)}
+                                    onChange={(e) => {
+                                      const newSet = new Set(selectedRows)
+                                      if (e.target.checked) {
+                                        newSet.add(detail.id)
+                                      } else {
+                                        newSet.delete(detail.id)
+                                      }
+                                      setSelectedRows(newSet)
+                                    }}
+                                  />
+                                </TableCell>
                                 <TableCell className="font-medium text-center">{index + 1}</TableCell>
-                                <TableCell className="text-center">{detail.code}</TableCell>
-                                <TableCell className="text-center">{detail.name}</TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'code'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'code', value: detail.code })}
+                                      >
+                                        {detail.code}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Code</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Code</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, code: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'name'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'name', value: detail.name })}
+                                      >
+                                        {detail.name}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Name</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Name</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, name: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'lat'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'lat', value: detail.lat })}
+                                      >
+                                        {detail.lat}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Latitude</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Latitude</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, lat: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  <Popover
+                                    open={editingCell?.rowId === detail.id && editingCell?.field === 'long'}
+                                    onOpenChange={(open) => {
+                                      if (!open) setEditingCell(null)
+                                    }}
+                                  >
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="w-full text-center hover:bg-accent/50 px-2 py-1 rounded transition-colors cursor-pointer"
+                                        onClick={() => setEditingCell({ rowId: detail.id, field: 'long', value: detail.long })}
+                                      >
+                                        {detail.long}
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-80" align="center">
+                                      <div className="space-y-4">
+                                        <h4 className="font-medium text-sm">Edit Longitude</h4>
+                                        <div className="space-y-2">
+                                          <label className="text-sm font-medium">Longitude</label>
+                                          <Input
+                                            value={editingCell?.value || ''}
+                                            onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setEditingCell(null)}
+                                          >
+                                            Cancel
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              if (editingCell) {
+                                                const newDetails = routeDetailsState.map(d =>
+                                                  d.id === detail.id ? { ...d, long: editingCell.value } : d
+                                                )
+                                                setRouteDetailsState(newDetails)
+                                                setEditingCell(null)
+                                              }
+                                            }}
+                                          >
+                                            <Check className="h-4 w-4 mr-1" />
+                                            Save
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </TableCell>
                                 <TableCell className="text-center">
                                   <select
                                     value={detail.delivery}
@@ -641,7 +1143,7 @@ export function App() {
                               </TableRow>
                             ))}
                             <TableRow className="border-b border-dashed hover:bg-muted/50">
-                              <TableCell colSpan={5} className="text-center py-3">
+                              <TableCell colSpan={8} className="text-center py-3">
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -656,7 +1158,9 @@ export function App() {
                                         id: newId,
                                         code: `NEW${newId}`,
                                         name: `New Location ${newId}`,
-                                        delivery: 'Daily'
+                                        delivery: 'Daily',
+                                        lat: '0.0000',
+                                        long: '0.0000'
                                       }
                                     ])
                                   }}
@@ -719,8 +1223,14 @@ export function App() {
     if (activePage === "settings") {
       return (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Settings</h2>
-          <p className="text-muted-foreground">Halaman pengaturan aplikasi.</p>
+          <h2 className="text-2xl font-bold mb-6">Settings</h2>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Editable Table Demo</h3>
+            <p className="text-muted-foreground mb-4">
+              Click on any cell to edit or use the pencil icon to edit all fields at once.
+            </p>
+            <EditableDialogTableExample />
+          </div>
         </div>
       )
     }
@@ -851,6 +1361,123 @@ export function App() {
               </div>
             </div>
           </div>
+
+          {/* Color Legend Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Stock In Color */}
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">✅</span>
+                <h3 className="font-semibold">Stock In Color</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Isnin</span>
+                  <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Selasa</span>
+                  <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-orange-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Rabu</span>
+                  <div className="w-6 h-6 rounded-full bg-amber-700 border-2 border-amber-800 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Khamis</span>
+                  <div className="w-6 h-6 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Jumaat</span>
+                  <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Sabtu</span>
+                  <div className="w-6 h-6 rounded-full bg-pink-500 border-2 border-pink-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Ahad</span>
+                  <div className="w-6 h-6 rounded-full bg-yellow-400 border-2 border-yellow-500 shadow-sm"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Move Front Color */}
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">🔄</span>
+                <h3 className="font-semibold">Move Front Color</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Isnin</span>
+                  <div className="w-6 h-6 rounded-full bg-yellow-400 border-2 border-yellow-500 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Selasa</span>
+                  <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Rabu</span>
+                  <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-orange-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Khamis</span>
+                  <div className="w-6 h-6 rounded-full bg-amber-700 border-2 border-amber-800 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Jumaat</span>
+                  <div className="w-6 h-6 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Sabtu</span>
+                  <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Ahad</span>
+                  <div className="w-6 h-6 rounded-full bg-pink-500 border-2 border-pink-600 shadow-sm"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Expired Color */}
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">🚫</span>
+                <h3 className="font-semibold">Expired Color</h3>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Isnin</span>
+                  <div className="w-6 h-6 rounded-full bg-pink-500 border-2 border-pink-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Selasa</span>
+                  <div className="w-6 h-6 rounded-full bg-yellow-400 border-2 border-yellow-500 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Rabu</span>
+                  <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-blue-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Khamis</span>
+                  <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-orange-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Jumaat</span>
+                  <div className="w-6 h-6 rounded-full bg-amber-700 border-2 border-amber-800 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Sabtu</span>
+                  <div className="w-6 h-6 rounded-full bg-green-500 border-2 border-green-600 shadow-sm"></div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Ahad</span>
+                  <div className="w-6 h-6 rounded-full bg-purple-500 border-2 border-purple-600 shadow-sm"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -872,7 +1499,7 @@ export function App() {
         
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-xs">Main</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -883,6 +1510,17 @@ export function App() {
                   >
                     <Home />
                     <span>Home</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={() => setActivePage("calendar")}
+                    isActive={activePage === "calendar"}
+                    className="text-base"
+                  >
+                    <Calendar />
+                    <span>Calendar</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
@@ -898,6 +1536,9 @@ export function App() {
                         onClick={() => {
                           setActivePage("routelist")
                           setRouteListOpen(!routeListOpen)
+                          if (!routeListOpen) {
+                            setPlanoOpen(false)
+                          }
                         }}
                         isActive={activePage === "routelist" || activePage === "selangor" || activePage === "kualalumpur"}
                       >
@@ -908,7 +1549,8 @@ export function App() {
                     </CollapsibleTrigger>
                     <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ 
                       maxHeight: routeListOpen ? '500px' : '0px',
-                      opacity: routeListOpen ? 1 : 0
+                      opacity: routeListOpen ? 1 : 0,
+                      transform: routeListOpen ? 'translateY(0)' : 'translateY(-10px)'
                     }}>
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
@@ -931,12 +1573,62 @@ export function App() {
                     </div>
                   </SidebarMenuItem>
                 </Collapsible>
+
+                <Collapsible 
+                  open={planoOpen} 
+                  onOpenChange={setPlanoOpen}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton 
+                        className="text-base"
+                        onClick={() => {
+                          setActivePage("plano")
+                          setPlanoOpen(!planoOpen)
+                          if (!planoOpen) {
+                            setRouteListOpen(false)
+                          }
+                        }}
+                        isActive={activePage === "plano" || activePage === "standard" || activePage === "shell"}
+                      >
+                        <Image />
+                        <span>Plano</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200" style={{ transform: planoOpen ? 'rotate(90deg)' : 'rotate(0deg)' }} />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ 
+                      maxHeight: planoOpen ? '500px' : '0px',
+                      opacity: planoOpen ? 1 : 0,
+                      transform: planoOpen ? 'translateY(0)' : 'translateY(-10px)'
+                    }}>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => setActivePage("standard")}
+                            isActive={activePage === "standard"}
+                          >
+                            <span>Standard</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            onClick={() => setActivePage("shell")}
+                            isActive={activePage === "shell"}
+                          >
+                            <span>Shell</span>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </div>
+                  </SidebarMenuItem>
+                </Collapsible>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
 
-          <SidebarGroup>
-            <SidebarGroupLabel>Pengaturan</SidebarGroupLabel>
+          <SidebarGroup className="mt-4">
+            <SidebarGroupLabel className="text-xs">General</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -963,8 +1655,8 @@ export function App() {
         </SidebarContent>
 
         <SidebarFooter>
-          <div className="px-4 py-2 text-xs text-muted-foreground">
-            © 2026 Dashboard App
+          <div className="px-4 py-2 text-xs text-muted-foreground text-center">
+            © 2026 Vm Routes
           </div>
         </SidebarFooter>
       </Sidebar>
